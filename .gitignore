@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Testing
+.pytest_cache/
+
+# Runtime artifacts
+received_files/
+server_storage/
+CacheFolder/
+
+# Benchmark outputs
+benchmark_results.json
+benchmark_suite_results.json
+benchmark_chart.png
+*.bench
+*.dat
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docs (keep proposal out of repo — submit separately)
+proposal.docx
