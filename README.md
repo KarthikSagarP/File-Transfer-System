@@ -80,6 +80,8 @@ Full benchmark suite: `python benchmark_suite.py` then `python generate_chart.py
 
 ### A. Throughput
 
+![Benchmark Throughput Overview](assets/bench_throughput.png)
+
 | File Size | Transfer Time | Throughput |
 |-----------|--------------|------------|
 | 1 KB | 43 ms | 23 KB/s |
@@ -90,6 +92,8 @@ Full benchmark suite: `python benchmark_suite.py` then `python generate_chart.py
 Throughput scales 350x from 1KB to 1MB. Small files are dominated by protocol overhead (~43ms baseline), while large files achieve near-maximum transfer speed.
 
 ### B. Scalability
+
+![Benchmark Scalability Overview](assets/bench_scalability.png)
 
 | Clients | Avg Time | Aggregate Throughput |
 |---------|----------|---------------------|
@@ -103,9 +107,13 @@ Peak aggregate throughput at 10 clients (2,477 KB/s). Degradation at 20 clients 
 
 ### C. Reliability
 
+![Benchmark Reliability Overview](assets/bench_reliability.png)
+
 **100% success rate across all error conditions**, including 20% packet drops, 10% corruption, and combined "heavy" errors (20% drop + 10% corrupt + 5% duplicate). Retransmission overhead ranges from 101ms (clean) to 129ms (mixed errors).
 
 ### D. Backend Comparison (1000KB files, 5 clients)
+
+![Backend comparison Overview](assets/bench_backends.png)
 
 | Backend | Throughput | vs Threaded |
 |---------|-----------|-------------|
