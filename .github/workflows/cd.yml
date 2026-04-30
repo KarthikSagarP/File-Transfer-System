@@ -1,4 +1,4 @@
-name: CD — Build & Deploy
+name: CD — Build & Publish
 
 on:
   push:
@@ -50,23 +50,3 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  deploy:
-    name: Deploy to Server
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            cd /opt/file-transfer
-            docker compose pull server
-            docker compose up -d --no-deps server
-            sleep 5
-            docker compose ps server
