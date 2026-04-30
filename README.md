@@ -27,27 +27,27 @@ The system enables multiple clients to simultaneously upload files to a server o
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                           CLIENT(S)                                      │
-│  ┌──────────────┐  ┌────────────────┐  ┌──────────┐  ┌──────────────┐   │
-│  │  Session Mgr  │  │ Transfer Engine │  │  TUI     │  │ Session Cache│   │
-│  │  (username,   │  │ (send/recv/    │  │ (16 cmds │  │ (3-slot LFU) │   │
-│  │   history)    │  │  CRC, reassem) │  │  + help) │  │              │   │
-│  └──────────────┘  └───────┬────────┘  └──────────┘  └──────────────┘   │
+│  ┌──────────────┐  ┌────────────────┐  ┌──────────┐  ┌──────────────┐    │
+│  │  Session Mgr │  │ Transfer Engine│  │  TUI     │  │ Session Cache│    │
+│  │  (username,  │  │ (send/recv/    │  │ (16 cmds │  │ (3-slot LFU) │    │
+│  │   history)   │  │  CRC, reassem) │  │  + help) │  │              │    │
+│  └──────────────┘  └───────┬────────┘  └──────────┘  └──────────────┘    │
 │                            │                                             │
 └────────────────────────────┼─────────────────────────────────────────────┘
                              │ TCP Socket (persistent session)
 ┌────────────────────────────┼─────────────────────────────────────────────┐
 │                    SERVER  │                                             │
-│  ┌──────────────┐  ┌──────┴───────┐  ┌──────────────┐  ┌────────────┐   │
-│  │  Concurrency │  │   Command    │  │  LRU Cache   │  │   Error    │   │
-│  │  Engine      │  │   Router     │  │  (SHA-256    │  │   Simulator│   │
-│  │  (thread/    │  │  (upload,    │  │   keyed,     │  │  (drop,    │   │
-│  │   async/     │  │   download,  │  │   TTL+evict) │  │   corrupt, │   │
-│  │   hybrid)    │  │   query...)  │  │              │  │   dup,lag) │   │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘   │
+│  ┌──────────────┐  ┌──────┴───────┐  ┌──────────────┐  ┌────────────┐    │
+│  │  Concurrency │  │   Command    │  │  LRU Cache   │  │   Error    │    │
+│  │  Engine      │  │   Router     │  │  (SHA-256    │  │   Simulator│    │
+│  │  (thread/    │  │  (upload,    │  │   keyed,     │  │  (drop,    │    │
+│  │   async/     │  │   download,  │  │   TTL+evict) │  │   corrupt, │    │
+│  │   hybrid)    │  │   query...)  │  │              │  │   dup,lag) │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └────────────┘    │
 │                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐     │
-│  │                    File Storage (disk)                           │     │
-│  └──────────────────────────────────────────────────────────────────┘     │
+│  ┌──────────────────────────────────────────────────────────────────┐    │
+│  │                    File Storage (disk)                           │    │
+│  └──────────────────────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -73,43 +73,43 @@ Packed with `struct.pack("!BII", ...)` (big-endian). 14 message types support up
 ```
     CLIENT A                                              SERVER
       │                                                     │
-      │── 1. UPLOAD_REQUEST {filename, file_size} ────────►│
+      │── 1. UPLOAD_REQUEST {filename, file_size} ─────────►│
       │                                                     │
-      │◄── 2. ACK (ready to receive) ─────────────────────│
+      │◄── 2. ACK (ready to receive) ───────────────────────│
       │                                                     │
-      │── 3. Raw file bytes (streamed in 8KB blocks) ────►│
+      │── 3. Raw file bytes (streamed in 8KB blocks) ──────►│
       │                                                     │  4. Server stores file to disk
       │                                                     │  5. Computes SHA-256 checksum
       │                                                     │  6. Splits into 10 chunks × 1024 bytes
       │                                                     │  7. Checks LRU cache (miss → store)
       │                                                     │
-      │◄── 8. FILE_META {checksum, total_chunks=10} ──────│
+      │◄── 8. FILE_META {checksum, total_chunks=10} ────────│
       │                                                     │
-      │◄── 9. CHUNK seq=7 [CRC32 appended] ──────────────│  (shuffled order)
-      │◄── CHUNK seq=2 [CRC32 appended] ─────────────────│
-      │◄── CHUNK seq=0 [CRC32 appended] ─────────────────│
-      │    ... (seq=4 DROPPED, seq=8 CORRUPTED) ...        │
-      │◄── CHUNK seq=9 [CRC32 appended] ─────────────────│
+      │◄── 9. CHUNK seq=7 [CRC32 appended] ─────────────────│  (shuffled order)
+      │◄── CHUNK seq=2 [CRC32 appended] ────────────────────│
+      │◄── CHUNK seq=0 [CRC32 appended] ────────────────────│
+      │    ... (seq=4 DROPPED, seq=8 CORRUPTED) ...         │
+      │◄── CHUNK seq=9 [CRC32 appended] ────────────────────│
       │                                                     │
-      │◄── 10. TRANSFER_DONE ────────────────────────────│
+      │◄── 10. TRANSFER_DONE ───────────────────────────────│
       │                                                     │
-      │  11. Client checks: received {0,2,3,5,6,7,9}       │
+      │  11. Client checks: received {0,2,3,5,6,7,9}        │
       │      CRC fail on seq=8 → treat as missing           │
       │      Missing: [1, 4, 8]                             │
       │                                                     │
-      │── 12. RETRANSMIT_REQ [1, 4, 8] ─────────────────►│
+      │── 12. RETRANSMIT_REQ [1, 4, 8] ────────────────────►│
       │                                                     │
-      │◄── 13. CHUNK seq=1 (clean, no drop sim) ─────────│
-      │◄── CHUNK seq=4 ──────────────────────────────────│
-      │◄── CHUNK seq=8 ──────────────────────────────────│
-      │◄── TRANSFER_DONE ───────────────────────────────│
+      │◄── 13. CHUNK seq=1 (clean, no drop sim) ────────────│
+      │◄── CHUNK seq=4 ─────────────────────────────────────│
+      │◄── CHUNK seq=8 ─────────────────────────────────────│
+      │◄── TRANSFER_DONE ───────────────────────────────────│
       │                                                     │
       │  14. All 10 chunks received + CRC verified          │
-      │  15. Reassemble: chunks[0]+[1]+...+[9]             │
+      │  15. Reassemble: chunks[0]+[1]+...+[9]              │
       │  16. Compute SHA-256 of reassembled bytes           │
       │  17. Compare with server's checksum → MATCH         │
       │                                                     │
-      │── 18. ACK (Transfer Successful) ─────────────────►│
+      │── 18. ACK (Transfer Successful) ───────────────────►│
       │                                                     │
 ```
 
