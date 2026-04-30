@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt 2>/dev/null || true
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY protocol.py cache.py ./
 COPY server.py server_async.py server_hybrid.py ./
